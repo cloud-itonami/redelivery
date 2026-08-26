@@ -1,40 +1,50 @@
 # Operator quickstart
 
 **Nothing in this repository says what redelivery does, and there is nothing here
-to deploy.** 13 tracked files: a Vite/Svelte scaffold whose page is a placeholder,
-an actor manifest pointing at a component that does not exist, and no
-`wrangler.jsonc` at all.
+to deploy.** 12 tracked files: a reagent + re-frame scaffold (jp-go-dds,
+デジタル庁デザインシステム) whose page is a placeholder, an actor manifest pointing
+at a component that does not exist, and no `wrangler.jsonc` at all.
 
 That is not a complaint about this repository in particular — measured below, it is
 the shape of a large part of the cohort. This document is repository orientation
 and says which of the two questions ("what is it" / "how do I run it") the tree can
 answer. Neither, as it stands.
 
-Steps marked ✅ were run against this tree on 2026-08-15.
+Steps marked ✅ were run against this tree on 2026-08-15. **Updated 2026-08-26**: the
+frontend was migrated from the Svelte/Vite scaffold to ClojureScript
+(reagent + re-frame + jp-go-dds), per ADR-2608260900. The counts and the build
+section below reflect that migration; nothing else about "what does redelivery do"
+changed.
 
 ---
 
-## 1. The whole repository ✅
+## 1. The whole repository ✅ (updated 2026-08-26)
 
 ```bash
-git ls-files | wc -l                       # 13
-git ls-files | grep -c wrangler            # 0   -- no deploy configuration
-git ls-files | grep -c '\.wasm$'           # 0
-wc -c appview/*/svelte/src/App.svelte      # 450
+git ls-files | wc -l                                              # 12
+git ls-files | grep -c wrangler                                   # 0   -- no deploy configuration
+git ls-files | grep -c '\.wasm$'                                  # 0
+cat appview/*/cljs/src/redelivery_frontend/app.cljs
 ```
 
-`App.svelte` in full, minus its `<style>` block:
+`app.cljs`'s `view` function, in full:
 
-```svelte
-<main>
-  <h1>etzhayyim-wasm-redelivery-rd3l1vry</h1>
-  <p>Vite entry scaffold after SvelteKit cleanup.</p>
-</main>
+```clojure
+(defn view []
+  (let [name @(rf/subscribe [:app/name])
+        tagline @(rf/subscribe [:app/tagline])]
+    [dds/container
+     [:div {:class "dds-ext-hero"}
+      [dds/heading 1 name]
+      [:p tagline]]]))
 ```
 
-The page renders its own directory name and says it is a scaffold. There is no
-router, no data, no fetch, and — with no `wrangler.jsonc` — nothing that says where
-a build of it would go.
+The page renders its own directory name and a tagline via a real re-frame
+event → db → sub → view round-trip (`:init-db` seeds `default-db`, `:app/name`
+and `:app/tagline` subscribe to it) instead of the Svelte scaffold's static
+markup — but it is not more *featureful* than the scaffold it replaced: no
+router, no data, no fetch, and — with no `wrangler.jsonc` — nothing that says
+where a build of it would go.
 
 ## 2. What the actor manifest claims ✅
 
@@ -82,28 +92,34 @@ So: a third of the actor manifests do not say what their actor does; nearly nine
 ten declared components are not in their repository; and 28 repositories, this one
 included, hold a placeholder page with no deployment target.
 
-Reproduce the last three rows without leaving this tree:
+The three rows above were measured against the `svelte/` tree that stood here on
+2026-08-15; that tree no longer exists in this repository (migrated 2026-08-26,
+see §1), so they are not reproducible verbatim any more. What still reproduces:
 
 ```bash
 git ls-files | grep -c wrangler                                    # 0
-grep -c 'Vite entry scaffold after SvelteKit cleanup' \
-  appview/*/svelte/src/App.svelte                                  # 1
 ls appview/*/component.wasm 2>&1 | tail -1                         # no matches found
 ```
 
-## 4. Build ⚠ NOT WALKED, and it would not help
+## 4. Build ✅ (Svelte build retired 2026-08-26, ClojureScript build verified)
 
-`svelte/package.json` declares Vite with Tailwind and PostCSS. There is no lockfile
-and no `node_modules`, so an install needs the network; it was not run and is not
-claimed to work. Through the resource governor if you do:
+The former `svelte/package.json` (Vite + Tailwind + PostCSS) is gone. The
+frontend now builds with shadow-cljs from
+`appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs`:
 
 ```bash
 node <root>/scripts/resource-guard.mjs run build -- \
-  npm --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/svelte run build
+  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs shadow-cljs compile app
+node <root>/scripts/resource-guard.mjs run build -- \
+  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs shadow-cljs compile test
+node appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs/out/tests.js
 ```
 
-A successful build produces the placeholder page in §1, and there is no
-`wrangler.jsonc` to deploy it with.
+Both the `app` and `test` builds were run for this migration and passed (`npm
+install` first; see this session's build log). A successful `app` build produces
+the same placeholder page described in §1 at
+`appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs/public/index.html` +
+`public/js/app.js`, and there is still no `wrangler.jsonc` to deploy it with.
 
 ---
 
