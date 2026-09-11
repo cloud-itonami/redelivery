@@ -109,9 +109,9 @@ frontend now builds with shadow-cljs from
 
 ```bash
 node <root>/scripts/resource-guard.mjs run build -- \
-  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs shadow-cljs compile app
+  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs amu compile --target wasm32-browser app
 node <root>/scripts/resource-guard.mjs run build -- \
-  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs shadow-cljs compile test
+  npx --prefix appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs amu compile --target wasm32-browser test
 node appview/etzhayyim-wasm-redelivery-rd3l1vry/cljs/out/tests.js
 ```
 
